@@ -13,6 +13,8 @@ from flask_restful import Api
 from .config import load_config
 from .db import create_repository
 from .resources import DevicesResource, DeviceResource, PingResource
+from .audit import init_audit
+from pymongo import MongoClient
 
 
 # PUBLIC_INTERFACE
@@ -29,6 +31,11 @@ def create_app() -> Flask:
     # Load configuration and repository
     cfg = load_config()
     repo = create_repository(cfg.mongo_uri, cfg.db_name, cfg.collection_name)
+
+    # Initialize audit logging collection
+    client = MongoClient(cfg.mongo_uri)
+    audit_collection = client[cfg.db_name][cfg.audit_collection_name]
+    init_audit(audit_collection)
 
     # Set up Flask-RESTful
     api = Api(app, prefix="")

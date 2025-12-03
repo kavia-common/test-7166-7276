@@ -34,6 +34,7 @@ By default, the server runs on `http://0.0.0.0:5000`.
 - `MONGO_URI` (required): MongoDB connection string.
 - `DB_NAME` (required): Database name.
 - `COLLECTION_NAME` (required): Collection name where devices are stored.
+- `AUDIT_COLLECTION_NAME` (optional): Collection name where audit logs are stored (default `audit_logs`).
 - `FLASK_HOST` (optional): Host to bind (default `0.0.0.0`).
 - `FLASK_PORT` (optional): Port to bind (default `5000`).
 
@@ -57,3 +58,5 @@ By default, the server runs on `http://0.0.0.0:5000`.
 
 - All modules, classes, and functions have docstrings and follow PEP 8.
 - MongoDB unique index on `name` is enforced at runtime by the repository.
+- Audit logs are written to MongoDB using `AUDIT_COLLECTION_NAME` (default `audit_logs`), capturing action, device name,
+  request IP, timestamp, status, and optional details for each API call.

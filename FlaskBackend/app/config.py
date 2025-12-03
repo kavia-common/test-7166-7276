@@ -8,6 +8,7 @@ Environment Variables:
     MONGO_URI (str): MongoDB connection URI, e.g., mongodb+srv://user:pass@host/db
     DB_NAME (str): Name of the MongoDB database.
     COLLECTION_NAME (str): Name of the collection to store devices.
+    AUDIT_COLLECTION_NAME (str, optional): Name of the collection to store audit logs (default: "audit_logs").
 
 Notes:
     - Do not hardcode secrets. Ensure .env is used in development environments.
@@ -26,6 +27,7 @@ class Config:
     mongo_uri: str
     db_name: str
     collection_name: str
+    audit_collection_name: str
 
 
 # PUBLIC_INTERFACE
@@ -41,6 +43,7 @@ def load_config() -> Config:
     mongo_uri = os.getenv("MONGO_URI")
     db_name = os.getenv("DB_NAME")
     collection_name = os.getenv("COLLECTION_NAME")
+    audit_collection_name = os.getenv("AUDIT_COLLECTION_NAME", "audit_logs")
 
     missing = [name for name, val in {
         "MONGO_URI": mongo_uri,
@@ -54,7 +57,8 @@ def load_config() -> Config:
         )
 
     return Config(
-        mongo_uri=mongo_uri,
-        db_name=db_name,
-        collection_name=collection_name,
+        mongo_uri=mongo_uri,  # type: ignore[arg-type]
+        db_name=db_name,  # type: ignore[arg-type]
+        collection_name=collection_name,  # type: ignore[arg-type]
+        audit_collection_name=audit_collection_name,
     )
