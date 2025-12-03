@@ -6,7 +6,9 @@ variables (optionally from a .env file) and provides safe defaults for
 local development so the app can start even if env vars are not set.
 
 Environment Variables:
-    MONGO_URI (str, optional): MongoDB connection URI, e.g., mongodb://localhost:27017
+    MONGO_URI (str, optional): MongoDB connection URI, e.g., mongodb://localhost:27017.
+        If omitted or empty, the application will start without attempting any MongoDB
+        connection; the app will use an in-memory/no-op repository to allow startup.
     DB_NAME (str, optional): Name of the MongoDB database (default: "devices_db").
     COLLECTION_NAME (str, optional): Name of the collection to store devices (default: "devices").
     AUDIT_COLLECTION_NAME (str, optional): Name of the collection to store audit logs (default: "audit_logs").
@@ -14,6 +16,8 @@ Environment Variables:
 Notes:
     - Do not hardcode secrets. Use a .env file for local development.
     - Production deployments should override defaults via environment variables.
+    - This module MUST NOT raise on missing environment variables; validation is lazy
+      and performed only if MONGO_URI is provided.
 """
 
 from __future__ import annotations
@@ -50,11 +54,14 @@ def load_config() -> Config:
         Config: The application configuration object.
 
     Behavior:
-        - If MONGO_URI is not provided, the application will still start,
-          but any database operations will fail at the point of DB usage.
-          This enables CI/preview environments to boot without a database.
+        - Never raises if env vars are missing.
+        - If MONGO_URI is not provided, the application will still start and the app
+          will use an in-memory/no-op repository. Database connections are attempted
+          only when MONGO_URI is set (lazy validation).
     """
+    # Use None for unset/empty MONGO_URI to signal "no database" mode
     mongo_uri = os.getenv("MONGO_URI") or None
+    # Provide safe placeholder defaults for names; only used if mongo_uri is set
     db_name = os.getenv("DB_NAME", "devices_db")
     collection_name = os.getenv("COLLECTION_NAME", "devices")
     audit_collection_name = os.getenv("AUDIT_COLLECTION_NAME", "audit_logs")
