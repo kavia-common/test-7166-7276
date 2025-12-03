@@ -2,29 +2,41 @@
 
 This module defines configuration settings for the Flask application,
 including MongoDB connection details. It reads values from environment
-variables and provides a default structure for local development.
+variables (optionally from a .env file) and provides safe defaults for
+local development so the app can start even if env vars are not set.
 
 Environment Variables:
-    MONGO_URI (str): MongoDB connection URI, e.g., mongodb+srv://user:pass@host/db
-    DB_NAME (str): Name of the MongoDB database.
-    COLLECTION_NAME (str): Name of the collection to store devices.
+    MONGO_URI (str, optional): MongoDB connection URI, e.g., mongodb://localhost:27017
+    DB_NAME (str, optional): Name of the MongoDB database (default: "devices_db").
+    COLLECTION_NAME (str, optional): Name of the collection to store devices (default: "devices").
     AUDIT_COLLECTION_NAME (str, optional): Name of the collection to store audit logs (default: "audit_logs").
 
 Notes:
-    - Do not hardcode secrets. Ensure .env is used in development environments.
+    - Do not hardcode secrets. Use a .env file for local development.
+    - Production deployments should override defaults via environment variables.
 """
 
 from __future__ import annotations
 
 import os
 from dataclasses import dataclass
+from typing import Optional
+
+# Load .env if present (no-op if not available)
+try:
+    from dotenv import load_dotenv
+
+    load_dotenv()
+except Exception:
+    # If python-dotenv is not installed or .env is missing, ignore silently.
+    pass
 
 
 @dataclass(frozen=True)
 class Config:
     """Immutable configuration holder for the Flask app and MongoDB settings."""
 
-    mongo_uri: str
+    mongo_uri: Optional[str]
     db_name: str
     collection_name: str
     audit_collection_name: str
@@ -32,33 +44,24 @@ class Config:
 
 # PUBLIC_INTERFACE
 def load_config() -> Config:
-    """Load configuration from environment variables.
+    """Load configuration from environment variables with safe defaults.
 
     Returns:
         Config: The application configuration object.
 
-    Raises:
-        ValueError: If any required environment variable is missing.
+    Behavior:
+        - If MONGO_URI is not provided, the application will still start,
+          but any database operations will fail at the point of DB usage.
+          This enables CI/preview environments to boot without a database.
     """
-    mongo_uri = os.getenv("MONGO_URI")
-    db_name = os.getenv("DB_NAME")
-    collection_name = os.getenv("COLLECTION_NAME")
+    mongo_uri = os.getenv("MONGO_URI") or None
+    db_name = os.getenv("DB_NAME", "devices_db")
+    collection_name = os.getenv("COLLECTION_NAME", "devices")
     audit_collection_name = os.getenv("AUDIT_COLLECTION_NAME", "audit_logs")
 
-    missing = [name for name, val in {
-        "MONGO_URI": mongo_uri,
-        "DB_NAME": db_name,
-        "COLLECTION_NAME": collection_name,
-    }.items() if not val]
-
-    if missing:
-        raise ValueError(
-            f"Missing required environment variables: {', '.join(missing)}"
-        )
-
     return Config(
-        mongo_uri=mongo_uri,  # type: ignore[arg-type]
-        db_name=db_name,  # type: ignore[arg-type]
-        collection_name=collection_name,  # type: ignore[arg-type]
+        mongo_uri=mongo_uri,
+        db_name=db_name,
+        collection_name=collection_name,
         audit_collection_name=audit_collection_name,
     )
